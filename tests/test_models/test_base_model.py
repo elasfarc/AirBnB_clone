@@ -138,7 +138,7 @@ class TestDictionaryConversion(unittest.TestCase):
         resulting dictionary are of type string and have the expected values.
 
         """
-        with (patch("models.base_model.datetime") as mock_datetime):
+        with patch("models.base_model.datetime") as mock_datetime:
             mock_datetime.now.return_value =\
                 datetime.fromisoformat("2024-01-01")
             obj = BaseModel()
@@ -201,3 +201,134 @@ class TestDictionaryConversion(unittest.TestCase):
         self.assertEqual(dic["name"], obj.name)
         self.assertEqual(dic["age"], obj.age)
         self.assertEqual(dic["is_active"], obj.is_active)
+
+
+class Test(unittest.TestCase):
+    """
+    Test case for the instantiation and behavior of the BaseModel class.
+    """
+    def setUp(self):
+        """
+        Set up the test case with initial instances.
+        """
+        self.obj = BaseModel()
+        self.dic = self.obj.to_dict()
+        self.obj2 = BaseModel(**self.dic)
+
+    def test_kwargs_instantiation(self):
+        """
+        Test instantiation of the BaseModel class using keyword arguments.
+        """
+        self.assertDictEqual(self.obj.to_dict(), self.obj2.to_dict())
+
+        self.obj.name = "Test"
+        self.obj.age = None
+
+        obj3 = BaseModel(**self.obj.to_dict())
+        self.assertDictEqual(self.obj.to_dict(), obj3.to_dict())
+        self.assertEqual(obj3.name, "Test")
+        self.assertIsNone(obj3.age)
+
+    def test_dict_manipulation(self):
+        """
+        Test manipulation of the BaseModel instance's dictionary representation
+        """
+        dic = self.obj.to_dict()
+        del dic["updated_at"]
+        del dic["id"]
+        self.assertNotIn("updated_at", dic)
+        self.assertNotIn("id", dic)
+
+        with patch("models.base_model.datetime") as mocked_datetime:
+            with patch("uuid.uuid4", return_value="123"):
+                now = datetime.now()
+                mocked_datetime.now.return_value = now
+                obj2 = BaseModel(**dic)
+
+        self.assertIn("updated_at", obj2.to_dict())
+        self.assertIsInstance(obj2.updated_at, datetime)
+        self.assertEqual(obj2.updated_at, now)
+
+        self.assertIn("id", obj2.to_dict())
+        self.assertIsInstance(obj2.id, str)
+        self.assertEqual(obj2.id, "123")
+
+    def test_non_str_id(self):
+        dic = {"id": 123456}
+        obj = BaseModel(**dic)
+        self.assertIsInstance(obj.id, str)
+        self.assertEqual(obj.id, "123456")
+
+    def test_class_attribute(self):
+        """
+        Test class attribute "__class__" in the BaseModel instance's dictionary
+        """
+        class_name = BaseModel.__name__
+
+        # obj = BaseModel()
+        # dic = obj.to_dict()
+        # obj2 = BaseModel(**dic)
+
+        self.assertIn("__class__", self.dic)
+        self.assertEqual(self.dic["__class__"], class_name)
+
+        self.assertEqual(self.obj2.__class__, BaseModel)
+        self.assertNotEqual(self.obj2.__class__, class_name)
+
+    def test_timestamps_are_datetime(self):
+        """
+        Test that timestamps in the BaseModel instance are of type datetime.
+        """
+
+        # obj = BaseModel()
+        # dic = obj.to_dict()
+        #
+        # obj2 = BaseModel(**dic)
+
+        self.assertIsInstance(self.obj.created_at, datetime)
+        self.assertIsInstance(self.obj.updated_at, datetime)
+        self.assertIsInstance(self.dic["created_at"], str)
+        self.assertIsInstance(self.dic["updated_at"], str)
+
+        self.assertIsInstance(self.obj2.created_at, datetime)
+        self.assertIsInstance(self.obj2.updated_at, datetime)
+        self.assertEqual(self.obj2.created_at, self.obj.created_at)
+        self.assertEqual(self.obj2.updated_at, self.obj.updated_at)
+
+    def test_updated_at_when_no_created_at(self):
+        """
+        Test the behavior of updated_at when created_at is not provided.
+        """
+        mocked_update_stamp = datetime.fromisoformat("2014-01-01")
+        dic = {
+            "id": "123",
+            "updated_at": datetime.isoformat(mocked_update_stamp)
+        }
+
+        with patch("models.base_model.datetime") as mocked_datetime:
+            now = datetime.now()
+            mocked_datetime.now.return_value = now
+            obj = BaseModel(**dic)
+
+        self.assertEqual(obj.created_at, now)
+        self.assertNotEqual(obj.updated_at, mocked_update_stamp)
+        self.assertEqual(obj.updated_at, now)
+
+    def test_updated_at_when_created_at(self):
+        """
+        Test the behavior of updated_at when created_at is provided.
+        """
+        mocked_create_stamp = datetime.fromisoformat("2014-01-01")
+        dic = {
+            "id": "123",
+            "created_at": datetime.isoformat(mocked_create_stamp)
+        }
+
+        with patch("models.base_model.datetime") as mocked_datetime:
+            now = datetime.now()
+            mocked_datetime.now.return_value = now
+            mocked_datetime.fromisoformat.return_value = mocked_create_stamp
+            obj = BaseModel(**dic)
+
+        self.assertEqual(obj.created_at, mocked_create_stamp)
+        self.assertEqual(obj.updated_at, now)

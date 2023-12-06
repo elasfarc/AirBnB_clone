@@ -13,9 +13,12 @@ class BaseModel:
     attributes.
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         """
         Initialize a new instance of the BaseModel class.
+
+        Args:
+            @kwargs: Keyword arguments
 
         Attributes:
         - id (str): A unique identifier generated using the UUID4 algorithm.
@@ -23,11 +26,50 @@ class BaseModel:
             when the instance is created.
         - updated_at (datetime): The timestamp indicating
             when the instance is last updated.
+
+
+        Description:
+         This method iterates over the keyword arguments and sets the instance
+         attributes accordingly. If "id" is not provided, it is generated using
+         the UUID4 algorithm. If "created_at" is not provided,
+         it is set to the current timestamp.
+         If "updated_at" is provided, but "created_at" is not, "updated_at"
+         is set to the value of "created_at". If neither "updated_at" nor
+         "created_at" is provided, both are set to the current timestamp.
         """
+
+        for key, value in kwargs.items():
+            self[key] = value
+
         now = datetime.now()
-        self.id = str(uuid.uuid4())
-        self.created_at = now
-        self.updated_at = now
+        u_id = uuid.uuid4() if "id" not in kwargs else kwargs["id"]
+        self.id = str(u_id)
+
+        # TODO check string is iso-format before converting
+        self.created_at = now if "created_at" not in kwargs else (
+            datetime.fromisoformat(kwargs["created_at"]))
+
+        missing_timestamps = any([key not in kwargs for key in
+                                  ["updated_at", "created_at"]])
+        self.updated_at = now if missing_timestamps else (
+            datetime.fromisoformat(kwargs["updated_at"]))
+
+    def __setitem__(self, key, value):
+        """
+        Set the value of an attribute in the instance
+
+        Args:
+            @key: The key specifying the attribute to be set
+            @value: The value to be assigned to the specified attribute
+
+        Description:
+            This method sets the value of the specified attribute in the
+            instance, excluding reserved keys like "__class__", "created_at",
+            "updated_at", and "id".
+
+        """
+        if key not in ["__class__", "created_at", "updated_at", "id"]:
+            setattr(self, key, value)
 
     def save(self):
         """
