@@ -5,40 +5,36 @@ import cmd
 from textwrap import dedent
 
 
+def format_docstring(fn):
+    """
+    a decorator to format the docstring
+    removes leading whitespace
+
+    Args:
+        fn (function): the function to be formatted
+    """
+    fn.__doc__ = dedent(fn.__doc__).strip() + "\n"
+    return fn
+
+
 class HBNBCommand(cmd.Cmd):
     """ HBNB console commands and helper functions """
 
     prompt = "(hbnb) "
 
-    @staticmethod
-    def do_quit(s):
+    @format_docstring
+    def do_quit(self, _):
         """
         Quit command to exit the program
         """
         return True
 
-    @staticmethod
-    def do_EOF(s):
+    @format_docstring
+    def do_EOF(self, _):
         """
         EOF command to exit the program
         """
         return True
-
-    def help_quit(self):
-        """
-        Display help information for the 'quit' command
-        """
-        help_text = self.do_quit.__doc__
-        if help_text:
-            print(f"{dedent(help_text)}")
-
-    def help_EOF(self):
-        """
-        Display help information for the 'EOF' command
-        """
-        help_text = self.do_EOF.__doc__
-        if help_text:
-            print(f"{dedent(help_text)}")
 
     def emptyline(self):
         """
