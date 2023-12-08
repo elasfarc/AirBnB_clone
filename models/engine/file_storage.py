@@ -118,6 +118,7 @@ class FileStorage:
             JsonStorableEntity virtual class.
         """
         cls = self.__classes[cls_name]
+        # cls = globals()[cls_name]
         return cls(**dic)
 
     def reload(self):

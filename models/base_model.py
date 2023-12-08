@@ -4,7 +4,8 @@ module containing the class BaseModel
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, TypedDict
+from typing import Any, Dict
+import models
 
 
 class BaseModel:
@@ -38,6 +39,8 @@ class BaseModel:
          "created_at" is provided, both are set to the current timestamp.
         """
 
+        is_new_instance = not bool(len(kwargs))
+
         for key, value in kwargs.items():
             self[key] = value
 
@@ -53,6 +56,9 @@ class BaseModel:
                                   ["updated_at", "created_at"]])
         self.updated_at = now if missing_timestamps else (
             datetime.fromisoformat(kwargs["updated_at"]))
+
+        if is_new_instance:
+            models.storage.new(self)
 
     def __setitem__(self, key, value):
         """
@@ -79,6 +85,7 @@ class BaseModel:
         refreshing the 'updated_at' timestamp to the current date and time.
         """
         self.updated_at = datetime.now()
+        models.storage.save()
 
     def to_dict(self) -> Dict[str, Any]:
         """
