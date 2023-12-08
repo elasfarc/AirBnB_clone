@@ -5,34 +5,9 @@ module containing the class FileStorage
 
 import json
 from os import path
-from typing import Protocol, Dict, Any, Type
+from typing import Dict, Any, Type
 from models.base_model import BaseModel
-
-
-class JsonStorableEntity(Protocol):
-    """
-    (virtual class)
-    Represents an entity that can be stored in JSON format.
-    Classes that adhere to this class should implement at least these methods
-    """
-    id: str
-
-    def __init__(self, **kwargs):
-        """
-        Initialize a new instance.
-        Classes that adhere to this class should implement this method
-        and support keyword-args to instantiate new instances
-        """
-        pass
-
-    def to_dict(self) -> Dict[str, Any]:
-        """
-        Converts the entity to a dictionary.
-
-        Return:
-            dict: A dictionary representation of the entity.
-        """
-        pass
+from models.virtual import JsonStorableEntity
 
 
 SavedObjects = Dict[str, JsonStorableEntity]
