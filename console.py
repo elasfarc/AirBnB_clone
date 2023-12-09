@@ -6,7 +6,7 @@ from textwrap import dedent
 from models.base_model import BaseModel
 from models.virtual import JsonStorableEntity
 from models import storage
-from typing import Dict, Type
+from typing import Dict, Type, Union
 
 
 def format_docstring(fn):
@@ -22,7 +22,7 @@ def format_docstring(fn):
 
 
 class HBNBCommand(cmd.Cmd):
-    """ HBNB console commands and helper functions """
+    """HBNB console commands and helper functions"""
 
     __classes: Dict[str, Type[JsonStorableEntity]] = {
         'BaseModel': BaseModel
@@ -37,15 +37,10 @@ class HBNBCommand(cmd.Cmd):
         saves it (to the JSON file) and prints the id
         ex: create [className]
         """
-        args = s.split()
-        if len(args) < 1:
-            print("** class name missing **")
-        elif (cls_name := args[0]) not in self.__classes:
-            print("** class doesn't exist **")
-        else:
-            obj = self.__classes[cls_name]()
-            obj.save()
-            print(obj.id)
+        if factory := self.__get_cls_arg(s):
+            new_instance = factory()
+            new_instance.save()
+            print(new_instance.id)
 
     @format_docstring
     def do_show(self, s: str):
@@ -53,19 +48,26 @@ class HBNBCommand(cmd.Cmd):
         show command - Prints the string representation of an instance
         based on the class name and id. Ex: $ show [className] [object_id].
         """
-        args = s.split()
-        if len(args) < 1:
-            print("** class name missing **")
-        elif (cls_name := args[0]) not in self.__classes:
-            print("** class doesn't exist **")
-        elif len(args) < 2:
-            print("** instance id missing **")
-        else:
-            obj_id = args[1]
-            key = f"{cls_name}.{obj_id}"
-            objects = storage.all()
-            print("** no instance found **" if key not in objects else
-                  f"{objects[key]}")
+        key = self.__get_entity_key(s)
+        if key:
+            if key in (objects := storage.all()):
+                print(f"{objects[key]}")
+            else:
+                print("** no instance found **")
+
+    @format_docstring
+    def do_destroy(self, s: str):
+        """
+        destroy command - Deletes an instance based on the class name and id
+        Ex: $ destroy [className] [object_id].
+        """
+        key = self.__get_entity_key(s)
+        if key:
+            if key in (objects := storage.all()):
+                objects.pop(key)
+                storage.save()
+            else:
+                print("** no instance found **")
 
     @format_docstring
     def do_quit(self, _):
@@ -88,6 +90,75 @@ class HBNBCommand(cmd.Cmd):
             behavior to do nothing.
         """
         pass
+
+    @classmethod
+    def __get_cls_arg(cls, s: str) -> Union[Type[JsonStorableEntity], None]:
+        """Return the class object corresponding to the given string argument.
+
+        If the class does not exist, in the supported classes dictionary
+        this method will print an error message and return `None`.
+
+        Args:
+            s: A string representing the whole provided line to the console.
+
+        Returns:
+            The class object corresponding to the given string argument,
+            or `None` if the class does not exist.
+        """
+        args = s.split()
+        if len(args) < 1:
+            return print("** class name missing **")
+        elif (first_arg := args[0]) not in cls.__classes:
+            return print("** class doesn't exist **")
+        else:
+            return cls.__classes[first_arg]
+
+    @staticmethod
+    def __get_instance_id_arg(s: str):
+        """Extract the instance ID from the given string argument.
+
+        Assuming the object_id is the second arg
+        "<class_name> <instance_id> <other arguments>"
+        where `<instance_id>` is the unique identifier of the instance.
+        This method returns the extracted instance ID as a string,
+        or prints an error message and returns `None`
+        if no valid instance ID was found.
+
+        Args:
+            s: A string representing the whole provided line to the console.
+
+        Returns:
+            The extracted instance ID as a string,
+            or `None` if no valid instance ID was found.
+        """
+        args = s.split()
+        if len(args) < 2:
+            print("** instance id missing **")
+            return None
+        else:
+            return args[1]
+
+    @classmethod
+    def __get_entity_key(cls, s: str) -> str | None:
+        """Generate a key for the entity based on its type and ID.
+
+        The generated key has the format "<type>.<ID>",
+        where `<type>` is the fully qualified name of the entity's class,
+        and `<ID>` is the entity's unique identifier within that class.
+
+        Args:
+            s: A string representation of the entity, including its type and ID
+
+        Returns:
+            The generated entity key,
+            or `None`if the entity could not be identified.
+        """
+        if not (cls_arg := cls.__get_cls_arg(s)):
+            return None
+        if not (obj_id := cls.__get_instance_id_arg(s)):
+            return None
+
+        return f"{cls_arg.__name__}.{obj_id}"
 
 
 if __name__ == "__main__":
