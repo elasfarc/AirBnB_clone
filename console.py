@@ -70,6 +70,26 @@ class HBNBCommand(cmd.Cmd):
                 print("** no instance found **")
 
     @format_docstring
+    def do_all(self, s: str = None):
+        """
+        all command - all: Prints all string representation of all instances
+        based or not on the class name. Ex: $ all BaseModel or $ all.
+        """
+
+        is_class = bool(len(s.split()))
+
+        if is_class:
+            if cls := self.__get_cls_arg(s):
+                prefix = cls.__name__
+                dic = self.filter_by_prefix(storage.all(), prefix)
+            else:
+                return
+        else:
+            dic = storage.all()
+
+        print([str(entity) for entity in dic.values()])
+
+    @format_docstring
     def do_quit(self, _):
         """Quit command to exit the program"""
         return True
@@ -159,6 +179,23 @@ class HBNBCommand(cmd.Cmd):
             return None
 
         return f"{cls_arg.__name__}.{obj_id}"
+
+    @staticmethod
+    def __filter_by_prefix(dictionary: Dict[str, JsonStorableEntity], prefix: str):
+        """Filter a dictionary by a given prefix.
+
+        Return a new dictionary containing only the items whose
+        keys start with the given prefix.
+
+        Parameters:
+            dictionary : The original dictionary to filter.
+            prefix: The prefix to search for in the keys of the dictionary.
+
+        Returns:
+            dict: A filtered version of the original dictionary containing
+            only the items whose keys start with the given prefix.
+        """
+        return {k: v for k, v in dictionary.items() if k.startswith(prefix)}
 
 
 if __name__ == "__main__":
