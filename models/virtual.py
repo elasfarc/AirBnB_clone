@@ -5,7 +5,7 @@ module containing virtual abstract classes.
 from typing import Protocol, Dict, Any
 
 
-class JsonStorableEntity(Protocol):
+class StorableEntity(Protocol):
     """
     (virtual class)
     Represents an entity that can be stored in JSON format.

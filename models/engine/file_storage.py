@@ -7,21 +7,21 @@ import json
 from os import path
 from typing import Dict, Any, Type
 from models.base_model import BaseModel
-from models.virtual import JsonStorableEntity
+from models.virtual import StorableEntity
 
 
-SavedObjects = Dict[str, JsonStorableEntity]
+SavedObjects = Dict[str, StorableEntity]
 
 # T = TypeVar("T", bound=JsonStorableEntity)
 
 
 class FileStorage:
     """
-    Manages storage and retrieval of JsonStorableEntity objects in a file.
+    Manages storage and retrieval of StorableEntity objects in a file.
     """
     __file_path = "db.json"
-    __objects: Dict[str, JsonStorableEntity] = {}
-    __classes: Dict[str, Type[JsonStorableEntity]] = {
+    __objects: Dict[str, StorableEntity] = {}
+    __classes: Dict[str, Type[StorableEntity]] = {
         BaseModel.__name__: BaseModel,
     }
 
@@ -34,12 +34,12 @@ class FileStorage:
         """
         return self.__objects
 
-    def new(self, obj: JsonStorableEntity):
+    def new(self, obj: StorableEntity):
         """
         Adds a new object to storage.
 
         Args:
-            obj: The JsonStorableEntity object to be added.
+            obj: The StorableEntity object to be added.
 
         Raises:
             TypeError: If the object lacks required attributes.
@@ -80,17 +80,17 @@ class FileStorage:
 
     def __instantiate_from_dict(
             self, cls_name: str, dic: Dict[str, Any]
-    ) -> JsonStorableEntity:
+    ) -> StorableEntity:
         """
-        Instantiates a JsonStorableEntity object from a dictionary.
+        Instantiates a StorableEntity object from a dictionary.
 
         Args:
             cls_name: The name of the class to instantiate.
             dic: The dictionary containing object data.
 
         Return:
-            JsonStorableEntity: An instance that adheres to
-            JsonStorableEntity virtual class.
+            StorableEntity: An instance that adheres to
+            StorableEntity virtual class.
         """
         cls = self.__classes[cls_name]
         # cls = globals()[cls_name]

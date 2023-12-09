@@ -4,7 +4,7 @@
 import cmd
 from textwrap import dedent
 from models.base_model import BaseModel
-from models.virtual import JsonStorableEntity
+from models.virtual import StorableEntity
 from models import storage
 from typing import Dict, Type, Union
 
@@ -24,7 +24,7 @@ def format_docstring(fn):
 class HBNBCommand(cmd.Cmd):
     """HBNB console commands and helper functions"""
 
-    __classes: Dict[str, Type[JsonStorableEntity]] = {
+    __classes: Dict[str, Type[StorableEntity]] = {
         'BaseModel': BaseModel
     }
 
@@ -112,7 +112,7 @@ class HBNBCommand(cmd.Cmd):
         pass
 
     @classmethod
-    def __get_cls_arg(cls, s: str) -> Union[Type[JsonStorableEntity], None]:
+    def __get_cls_arg(cls, s: str) -> Union[Type[StorableEntity], None]:
         """Return the class object corresponding to the given string argument.
 
         If the class does not exist, in the supported classes dictionary
@@ -181,7 +181,7 @@ class HBNBCommand(cmd.Cmd):
         return f"{cls_arg.__name__}.{obj_id}"
 
     @staticmethod
-    def __filter_by_prefix(dictionary: Dict[str, JsonStorableEntity], prefix: str):
+    def __filter_by_prefix(dictionary: Dict[str, StorableEntity], prefix: str):
         """Filter a dictionary by a given prefix.
 
         Return a new dictionary containing only the items whose
