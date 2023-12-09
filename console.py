@@ -6,7 +6,7 @@ from textwrap import dedent
 from models.base_model import BaseModel
 from models.virtual import StorableEntity
 from models import storage
-from typing import Dict, Type, Union
+from typing import Dict, Type, List
 
 
 def format_docstring(fn):
@@ -37,8 +37,11 @@ class HBNBCommand(cmd.Cmd):
         saves it (to the JSON file) and prints the id
         ex: create [className]
         """
-        if factory := self.__get_cls_arg(s):
-            new_instance = factory()
+        args = s.split()
+        if self.has_valid_class(args):
+            class_name = args[0]
+            cls = self.__classes[class_name]
+            new_instance = cls()
             new_instance.save()
             print(new_instance.id)
 
@@ -48,7 +51,11 @@ class HBNBCommand(cmd.Cmd):
         show command - Prints the string representation of an instance
         based on the class name and id. Ex: $ show [className] [object_id].
         """
-        print(entity) if (entity := self.__retrieve_entity(s)) else None
+        args = s.split()
+        if self.has_valid_class(args) and self.has_id(args):
+            key = self.get_entity_storing_key(args[0], args[1])
+            if self.is_stored(key=key):
+                print(storage.all()[key])
 
     @format_docstring
     def do_destroy(self, s: str):
@@ -56,32 +63,31 @@ class HBNBCommand(cmd.Cmd):
         destroy command - Deletes an instance based on the class name and id
         Ex: $ destroy [className] [object_id].
         """
-        key = self.__get_entity_key(s)
-        if key:
-            if key in (objects := storage.all()):
-                objects.pop(key)
+        args = s.split()
+        if self.has_valid_class(args) and self.has_id(args):
+            key = self.get_entity_storing_key(args[0], args[1])
+            if self.is_stored(key=key):
+                storage.all().pop(key)
                 storage.save()
-            else:
-                print("** no instance found **")
 
     @format_docstring
-    def do_all(self, s: str = None):
+    def do_all(self, s: str):
         """
         all command - all: Prints all string representation of all instances
         based or not on the class name. Ex: $ all BaseModel or $ all.
         """
 
-        is_class = bool(len(s.split()))
+        args = s.split()
+        is_class = bool(len(args))
 
         if is_class:
-            if cls := self.__get_cls_arg(s):
-                prefix = cls.__name__
-                dic = self.__filter_by_prefix(storage.all(), prefix)
+            if self.has_valid_class(args):
+                class_name = args[0]
+                dic = self.__filter_by_prefix(storage.all(), class_name)
             else:
                 return
         else:
             dic = storage.all()
-
         print([str(entity) for entity in dic.values()])
 
     @format_docstring
@@ -106,95 +112,6 @@ class HBNBCommand(cmd.Cmd):
         """
         pass
 
-    @classmethod
-    def __get_cls_arg(cls, s: str) -> Union[Type[StorableEntity], None]:
-        """Return the class object corresponding to the given string argument.
-
-        If the class does not exist, in the supported classes dictionary
-        this method will print an error message and return `None`.
-
-        Args:
-            s: A string representing the whole provided line to the console.
-
-        Returns:
-            The class object corresponding to the given string argument,
-            or `None` if the class does not exist.
-        """
-        args = s.split()
-        if len(args) < 1:
-            return print("** class name missing **")
-        elif (first_arg := args[0]) not in cls.__classes:
-            return print("** class doesn't exist **")
-        else:
-            return cls.__classes[first_arg]
-
-    @staticmethod
-    def __get_instance_id_arg(s: str):
-        """Extract the instance ID from the given string argument.
-
-        Assuming the object_id is the second arg
-        "<class_name> <instance_id> <other arguments>"
-        where `<instance_id>` is the unique identifier of the instance.
-        This method returns the extracted instance ID as a string,
-        or prints an error message and returns `None`
-        if no valid instance ID was found.
-
-        Args:
-            s: A string representing the whole provided line to the console.
-
-        Returns:
-            The extracted instance ID as a string,
-            or `None` if no valid instance ID was found.
-        """
-        args = s.split()
-        if len(args) < 2:
-            print("** instance id missing **")
-            return None
-        else:
-            return args[1]
-
-    @classmethod
-    def __get_entity_key(cls, s: str) -> str | None:
-        """Generate a key for the entity based on its type and ID.
-
-        The generated key has the format "<type>.<ID>",
-        where `<type>` is the fully qualified name of the entity's class,
-        and `<ID>` is the entity's unique identifier within that class.
-
-        Args:
-            s: A string representation of the entity, including its type and ID
-
-        Returns:
-            The generated entity key,
-            or `None`if the entity could not be identified.
-        """
-        if not (cls_arg := cls.__get_cls_arg(s)):
-            return None
-        if not (obj_id := cls.__get_instance_id_arg(s)):
-            return None
-
-        return f"{cls_arg.__name__}.{obj_id}"
-
-    @classmethod
-    def __retrieve_entity(cls, s: str) -> StorableEntity | None:
-        """Retrieves an entity from storage based on its key.
-
-        Retrieves an entity from storage based on its key,
-        which is obtained by calling the private method `__get_entity_key`.
-        If the entity exists in storage, it is returned.
-        Otherwise, `None` is returned and an error message is printed.
-
-        Args:
-            s: A string representation of the entity, including its type and ID
-
-        Returns:
-            The retrieved entity, or None if the entity could not be found.
-        """
-        if key := cls.__get_entity_key(s):
-            if key in (objects := storage.all()):
-                return objects[key]
-            print("** no instance found **")
-
     @staticmethod
     def __filter_by_prefix(dictionary: Dict[str, StorableEntity], prefix: str):
         """Filter a dictionary by a given prefix.
@@ -211,6 +128,71 @@ class HBNBCommand(cmd.Cmd):
             only the items whose keys start with the given prefix.
         """
         return {k: v for k, v in dictionary.items() if k.startswith(prefix)}
+
+    def has_valid_class(self, args: List[str]) -> bool:
+        """
+        Check if the first element in the list of strings is a valid class name
+
+        Args:
+            args: The list of strings to check.
+
+        Return: Whether the first element in the list is a valid class name.
+        """
+        if len(args) < 1:
+            print("** class name missing **")
+            return False
+        if args[0] not in self.__classes:
+            print("** class doesn't exist **")
+            return False
+        return True
+
+    @staticmethod
+    def has_id(args: List[str]) -> bool:
+        """
+        Check if the second element in the list of strings is an instance id.
+
+        Args:
+            args: The list of strings to check.
+
+        Return: Whether the second element in the list is an instance id.
+        """
+        if len(args) < 2:
+            print("** instance id missing **")
+            return False
+        else:
+            return True
+
+    @staticmethod
+    def get_entity_storing_key(entity_cls: str, entity_id: str):
+        """
+        Return the storing key for an entity.
+
+        Args:
+            entity_cls: The class of the entity.
+            entity_id: The id of the entity.
+        """
+        return f"{entity_cls}.{entity_id}"
+
+    @classmethod
+    def is_stored(cls, **kwargs) -> bool:
+        """
+        Check if an entity is stored in the database.
+
+        Args:
+            kwargs: Keyword arguments specifying the entity to check.
+            ["key", "entity_cls", "entity_id"]
+        """
+        if "key" in kwargs:
+            key = kwargs["key"]
+        else:
+            key = cls.get_entity_storing_key(
+                kwargs["entity_cls"], kwargs["entity_id"]
+            )
+
+        if key not in (storage.all()):
+            print("** no instance found **")
+            return False
+        return True
 
 
 if __name__ == "__main__":
