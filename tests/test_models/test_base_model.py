@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """
 module containing tests for the BaseModel class.
 """
