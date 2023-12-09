@@ -21,6 +21,10 @@ class StorableEntity(Protocol):
         """
         pass
 
+    def __setitem__(self, key, value):
+        """Set the value of an attribute in the instance"""
+        pass
+
     def to_dict(self) -> Dict[str, Any]:
         """
         Converts the entity to a dictionary.
