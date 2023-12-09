@@ -7,6 +7,7 @@ from models.base_model import BaseModel
 from models.virtual import StorableEntity
 from models import storage
 from typing import Dict, Type, List, Callable
+import shlex
 
 
 def format_docstring(fn):
@@ -37,7 +38,7 @@ class HBNBCommand(cmd.Cmd):
         saves it (to the JSON file) and prints the id
         ex: create [className]
         """
-        args = s.split()
+        args = shlex.split(s)
         if self.has_valid_class(args):
             class_name = args[0]
             cls = self.__classes[class_name]
@@ -82,7 +83,7 @@ class HBNBCommand(cmd.Cmd):
         based or not on the class name. Ex: $ all BaseModel or $ all.
         """
 
-        args = s.split()
+        args = shlex.split(s)
         is_class = bool(len(args))
 
         if is_class:
@@ -94,6 +95,37 @@ class HBNBCommand(cmd.Cmd):
         else:
             dic = storage.all()
         print([str(entity) for entity in dic.values()])
+
+    @format_docstring
+    def do_update(self, s: str):
+        """
+        update: Updates an instance based on the class name and id
+        by adding or updating attribute.
+        Usage: update <class name> <id> <attribute name> "<attribute value>"
+        """
+
+        def update_object_attribute(storage_key: str):
+            """
+            Updates the attribute of an object in storage
+            with the specified key.
+            Prints error message If the attribute name or value is missing.
+
+            Args:
+            - storage_key (str): The key of the object to be updated.
+            """
+            args = shlex.split(s)
+            if len(args) < 3:
+                print("** attribute name missing **")
+            elif len(args) < 4:
+                print("** value missing **")
+            else:
+                attr_name = args[2]
+                value = str(args[3])
+                obj = storage.all()[storage_key]
+                obj[attr_name] = value
+                storage.save()
+
+        self.operate_on_entity_if_valid(s, update_object_attribute)
 
     @format_docstring
     def do_quit(self, _):
@@ -212,7 +244,7 @@ class HBNBCommand(cmd.Cmd):
             A callable function to execute the operation on the stored entity.
             (stored_entity_key: str) -> None
         """
-        args = cmd_line.split()
+        args = shlex.split(cmd_line)
         if self.has_valid_class(args) and self.has_id(args):
             entity_key = self.get_entity_storing_key(args[0], args[1])
             if self.is_stored(key=entity_key):
