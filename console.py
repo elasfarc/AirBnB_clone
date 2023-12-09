@@ -6,7 +6,7 @@ from textwrap import dedent
 from models.base_model import BaseModel
 from models.virtual import StorableEntity
 from models import storage
-from typing import Dict, Type, List
+from typing import Dict, Type, List, Callable
 
 
 def format_docstring(fn):
@@ -51,11 +51,9 @@ class HBNBCommand(cmd.Cmd):
         show command - Prints the string representation of an instance
         based on the class name and id. Ex: $ show [className] [object_id].
         """
-        args = s.split()
-        if self.has_valid_class(args) and self.has_id(args):
-            key = self.get_entity_storing_key(args[0], args[1])
-            if self.is_stored(key=key):
-                print(storage.all()[key])
+        self.operate_on_entity_if_valid(
+            s, lambda stored_obj_key: print(storage.all()[stored_obj_key])
+        )
 
     @format_docstring
     def do_destroy(self, s: str):
@@ -63,12 +61,19 @@ class HBNBCommand(cmd.Cmd):
         destroy command - Deletes an instance based on the class name and id
         Ex: $ destroy [className] [object_id].
         """
-        args = s.split()
-        if self.has_valid_class(args) and self.has_id(args):
-            key = self.get_entity_storing_key(args[0], args[1])
-            if self.is_stored(key=key):
-                storage.all().pop(key)
-                storage.save()
+        def remove_object_and_save(storage_key: str):
+            """
+            Removes an object with the specified key from storage and
+            saves the changes.
+
+            Args:
+            - storage_key (str):
+                The key of the object to be removed from the storage.
+            """
+            storage.all().pop(storage_key)
+            storage.save()
+
+        self.operate_on_entity_if_valid(s, remove_object_and_save)
 
     @format_docstring
     def do_all(self, s: str):
@@ -193,6 +198,25 @@ class HBNBCommand(cmd.Cmd):
             print("** no instance found **")
             return False
         return True
+
+    def operate_on_entity_if_valid(
+        self, cmd_line: str, operation_fn: Callable[[str], None]
+    ):
+        """
+        Executes an operation on a stored entity if the command line is valid.
+
+        Args:
+        - command_line:
+            A string representing the command line input.
+        - operation_function:
+            A callable function to execute the operation on the stored entity.
+            (stored_entity_key: str) -> None
+        """
+        args = cmd_line.split()
+        if self.has_valid_class(args) and self.has_id(args):
+            entity_key = self.get_entity_storing_key(args[0], args[1])
+            if self.is_stored(key=entity_key):
+                operation_fn(entity_key)
 
 
 if __name__ == "__main__":
