@@ -48,12 +48,7 @@ class HBNBCommand(cmd.Cmd):
         show command - Prints the string representation of an instance
         based on the class name and id. Ex: $ show [className] [object_id].
         """
-        key = self.__get_entity_key(s)
-        if key:
-            if key in (objects := storage.all()):
-                print(f"{objects[key]}")
-            else:
-                print("** no instance found **")
+        print(entity) if (entity := self.__retrieve_entity(s)) else None
 
     @format_docstring
     def do_destroy(self, s: str):
@@ -81,7 +76,7 @@ class HBNBCommand(cmd.Cmd):
         if is_class:
             if cls := self.__get_cls_arg(s):
                 prefix = cls.__name__
-                dic = self.filter_by_prefix(storage.all(), prefix)
+                dic = self.__filter_by_prefix(storage.all(), prefix)
             else:
                 return
         else:
@@ -179,6 +174,26 @@ class HBNBCommand(cmd.Cmd):
             return None
 
         return f"{cls_arg.__name__}.{obj_id}"
+
+    @classmethod
+    def __retrieve_entity(cls, s: str) -> StorableEntity | None:
+        """Retrieves an entity from storage based on its key.
+
+        Retrieves an entity from storage based on its key,
+        which is obtained by calling the private method `__get_entity_key`.
+        If the entity exists in storage, it is returned.
+        Otherwise, `None` is returned and an error message is printed.
+
+        Args:
+            s: A string representation of the entity, including its type and ID
+
+        Returns:
+            The retrieved entity, or None if the entity could not be found.
+        """
+        if key := cls.__get_entity_key(s):
+            if key in (objects := storage.all()):
+                return objects[key]
+            print("** no instance found **")
 
     @staticmethod
     def __filter_by_prefix(dictionary: Dict[str, StorableEntity], prefix: str):
