@@ -5,8 +5,39 @@ module containing the class BaseModel
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Union
 import models
+
+
+def handle_timestamp_update(timestamp: Any) -> Union[None, datetime]:
+    """
+    Handle timestamp update.
+
+    Args:
+    - timestamp (Any): The timestamp to be handled.
+    It can be of any type.
+
+    Returns:
+    - Any: The handled timestamp.
+        Returns None if the input timestamp is not a valid datetime object
+        or a valid ISO format string.
+
+    Example:
+    >>> handle_timestamp_update(datetime.now())
+    datetime.datetime(...)
+
+    >>> handle_timestamp_update("2024-01-01T12:34:56")
+    datetime.datetime(...)
+
+    >>> handle_timestamp_update("invalid_timestamp")
+    None
+    """
+    if not isinstance(timestamp, type(datetime.now())):
+        try:
+            timestamp = datetime.fromisoformat(str(timestamp))
+        except ValueError:
+            return None
+    return timestamp
 
 
 class BaseModel:
@@ -41,25 +72,20 @@ class BaseModel:
         """
 
         is_new_instance = not bool(len(kwargs))
-
-        for key, value in kwargs.items():
-            self[key] = value
-
-        now = datetime.now()
-        u_id = uuid.uuid4() if "id" not in kwargs else kwargs["id"]
-        self.id = str(u_id)
-
-        # TODO check string is iso-format before converting
-        self.created_at = now if "created_at" not in kwargs else (
-            datetime.fromisoformat(kwargs["created_at"]))
-
-        missing_timestamps = any([key not in kwargs for key in
-                                  ["updated_at", "created_at"]])
-        self.updated_at = now if missing_timestamps else (
-            datetime.fromisoformat(kwargs["updated_at"]))
-
         if is_new_instance:
+            now = datetime.now()
+            u_id = uuid.uuid4()
+            self.id = str(u_id)
+
+            # TODO check string is iso-format before converting
+            self.created_at = now
+            self.updated_at = now
+
             models.storage.new(self)
+
+        else:
+            for key, value in kwargs.items():
+                self[key] = value
 
     def __setitem__(self, key, value):
         """
@@ -75,8 +101,56 @@ class BaseModel:
             "updated_at", and "id".
 
         """
-        if key not in ["__class__", "created_at", "updated_at", "id"]:
-            setattr(self, key, value)
+
+        if key != "__class__":
+            if key == "created_at" or key == "updated_at":
+                self._set_timestamp(key, value)
+            else:
+                setattr(self, key, value)
+
+    def __setattr__(self, name, value):
+        """
+        Set attribute value.
+
+        This method is called when an attribute value is assigned
+        to an instance.
+            - If the attribute is 'created_at' or 'updated_at', it delegates
+                to the _set_timestamp method.
+            - If the attribute is 'id', it converts the value to a string.
+            - For other attributes, it uses
+                the default behavior (object.__setattr__)
+
+        Args:
+        - self: The instance itself.
+        - name (str): The name of the attribute being set.
+        - value: The value to be assigned to the attribute.
+
+        """
+        if name == "created_at" or name == "updated_at":
+            return self._set_timestamp(name, value)
+        if name == "id":
+            value = str(value)
+
+        object.__setattr__(self, name, value)
+
+    def _set_timestamp(self, timestamp_key: str, timestamp_value: Any):
+        """
+        Set timestamp attribute value. ('created_at' or 'updated_at').
+            - If the timestamp is valid,
+                it updates the attribute with the new value.
+            - If the timestamp is not valid, it prints an error message.
+
+        Args:
+        - self: The instance itself.
+        - timestamp_key (str): ('created_at' or 'updated_at').
+        - timestamp_value (Any):
+            The value to be assigned to the timestamp attribute.
+        """
+        updated_timestamp = handle_timestamp_update(timestamp_value)
+        if updated_timestamp:
+            object.__setattr__(self, timestamp_key, updated_timestamp)
+        else:
+            print("Failed to update datetime. Invalid input.")
 
     def save(self):
         """
