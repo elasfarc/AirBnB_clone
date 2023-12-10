@@ -2,13 +2,13 @@
 """ containing the Console Module """
 
 import cmd
-from textwrap import dedent
-from models.base_model import BaseModel
-from models.user import User
-from models.virtual import StorableEntity
-from models import storage
-from typing import Dict, Type, List, Callable
 import shlex
+from textwrap import dedent
+
+
+from models import storage
+from models.__supported_class import supported_classes, StorableEntity
+from typing import Dict, List, Callable
 
 
 def format_docstring(fn):
@@ -26,12 +26,6 @@ def format_docstring(fn):
 class HBNBCommand(cmd.Cmd):
     """HBNB console commands and helper functions"""
 
-    # TODO single supporeted __classes (console, fileStorage)
-    __classes: Dict[str, Type[StorableEntity]] = {
-        'BaseModel': BaseModel,
-        'User': User
-    }
-
     prompt = "(hbnb) "
 
     @format_docstring
@@ -44,7 +38,7 @@ class HBNBCommand(cmd.Cmd):
         args = shlex.split(s)
         if self.has_valid_class(args):
             class_name = args[0]
-            cls = self.__classes[class_name]
+            cls = supported_classes[class_name]
             new_instance = cls()
             new_instance.save()
             print(new_instance.id)
@@ -169,7 +163,8 @@ class HBNBCommand(cmd.Cmd):
         """
         return {k: v for k, v in dictionary.items() if k.startswith(prefix)}
 
-    def has_valid_class(self, args: List[str]) -> bool:
+    @staticmethod
+    def has_valid_class(args: List[str]) -> bool:
         """
         Check if the first element in the list of strings is a valid class name
 
@@ -181,7 +176,7 @@ class HBNBCommand(cmd.Cmd):
         if len(args) < 1:
             print("** class name missing **")
             return False
-        if args[0] not in self.__classes:
+        if args[0] not in supported_classes:
             print("** class doesn't exist **")
             return False
         return True
