@@ -2,13 +2,14 @@
 """ containing the Console Module """
 
 import cmd
+import shlex
 from textwrap import dedent
-from models.base_model import BaseModel
-from models.user import User
+
 from models.virtual import StorableEntity
 from models import storage
+from models import BaseModel, User, State, City, Amenity, Place, Review
+
 from typing import Dict, Type, List, Callable
-import shlex
 
 
 def format_docstring(fn):
@@ -29,7 +30,12 @@ class HBNBCommand(cmd.Cmd):
     # TODO single supporeted __classes (console, fileStorage)
     __classes: Dict[str, Type[StorableEntity]] = {
         'BaseModel': BaseModel,
-        'User': User
+        'User': User,
+        'State': State,
+        'City': City,
+        'Amenity': Amenity,
+        'Place': Place,
+        'Review': Review
     }
 
     prompt = "(hbnb) "
