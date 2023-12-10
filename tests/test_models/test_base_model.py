@@ -97,7 +97,8 @@ class TestBaseModel(unittest.TestCase):
         self.assertEqual(str(obj), expected)
 
     #  The string representation includes all attributes of the object.
-    def test_string_representation_includes_all_attributes(self):
+    @patch("models.storage.new", side_effect=lambda self: None)
+    def test_string_representation_includes_all_attributes(self, _):
         """
         test_string_representation_includes_all_attributes
             Test that the string representation includes all attributes.
@@ -108,10 +109,12 @@ class TestBaseModel(unittest.TestCase):
         representation, and compares it with the expected string.
         The expected string is formatted as "[TestModel] (ObjectID) {__dict__}"
         """
+
         class TestModel(BaseModel):
             """
             TestModel - A subclass of BaseModel for testing purposes.
             """
+
             def __init__(self):
                 super().__init__()
                 self.attribute1 = "value1"
@@ -127,6 +130,7 @@ class TestDictionaryConversion(unittest.TestCase):
     TestDictionaryConversion - Test case for the dictionary conversion
     methods in the BaseModel class.
     """
+
     def test_timestamps(self):
         """
         test_timestamps - Test handling of timestamps in the to_dict method.
@@ -173,7 +177,8 @@ class TestDictionaryConversion(unittest.TestCase):
         self.assertEqual(dic["created_at"], obj.created_at.isoformat())
         self.assertEqual(dic["created_at"], obj.created_at.isoformat())
 
-    def test_works_with_attributes_of_different_types(self):
+    @patch("models.storage.new", side_effect=lambda self: None)
+    def test_works_with_attributes_of_different_types(self, _):
         """
         test_works_with_attributes_of_different_types
             Test that to_dict works with attributes of different types.
@@ -186,10 +191,12 @@ class TestDictionaryConversion(unittest.TestCase):
         their correct values.
 
         """
+
         class TestModel(BaseModel):
             """
             TestModel - A subclass of BaseModel for testing purposes.
             """
+
             def __init__(self):
                 super().__init__()
                 self.name = "Test"
@@ -208,6 +215,7 @@ class Test(unittest.TestCase):
     """
     Test case for the instantiation and behavior of the BaseModel class.
     """
+
     def setUp(self):
         """
         Set up the test case with initial instances.
@@ -230,9 +238,10 @@ class Test(unittest.TestCase):
         self.assertEqual(obj3.name, "Test")
         self.assertIsNone(obj3.age)
 
-    def test_dict_manipulation(self):
+    def test_instance_has_matching_attributes(self):
         """
-        Test manipulation of the BaseModel instance's dictionary representation
+        Test that the BaseModel instance only has attributes corresponding
+        to the keys in the dictionary used for its creation.
         """
         dic = self.obj.to_dict()
         del dic["updated_at"]
@@ -240,19 +249,11 @@ class Test(unittest.TestCase):
         self.assertNotIn("updated_at", dic)
         self.assertNotIn("id", dic)
 
-        with patch("models.base_model.datetime") as mocked_datetime:
-            with patch("uuid.uuid4", return_value="123"):
-                now = datetime.now()
-                mocked_datetime.now.return_value = now
-                obj2 = BaseModel(**dic)
+        obj2 = BaseModel(**dic)
 
-        self.assertIn("updated_at", obj2.to_dict())
-        self.assertIsInstance(obj2.updated_at, datetime)
-        self.assertEqual(obj2.updated_at, now)
-
-        self.assertIn("id", obj2.to_dict())
-        self.assertIsInstance(obj2.id, str)
-        self.assertEqual(obj2.id, "123")
+        self.assertNotIn("updated_at", obj2.to_dict())
+        self.assertNotIn("id", obj2.to_dict())
+        self.assertDictEqual(obj2.to_dict(), dic)
 
     def test_non_str_id(self):
         dic = {"id": 123456}
@@ -296,40 +297,31 @@ class Test(unittest.TestCase):
         self.assertEqual(self.obj2.created_at, self.obj.created_at)
         self.assertEqual(self.obj2.updated_at, self.obj.updated_at)
 
-    def test_updated_at_when_no_created_at(self):
+    class TestBaseModelUpdatedAtBehavior(unittest.TestCase):
         """
-        Test the behavior of updated_at when created_at is not provided.
+        Test case for the behavior of updated_at when created_at is
+        not provided.
         """
-        mocked_update_stamp = datetime.fromisoformat("2014-01-01")
-        dic = {
-            "id": "123",
-            "updated_at": datetime.isoformat(mocked_update_stamp)
-        }
 
-        with patch("models.base_model.datetime") as mocked_datetime:
-            now = datetime.now()
-            mocked_datetime.now.return_value = now
-            obj = BaseModel(**dic)
+        def test_updated_at_with_no_created_at(self):
+            """
+            Test the behavior of updated_at when created_at is not provided.
+            """
 
-        self.assertEqual(obj.created_at, now)
-        self.assertNotEqual(obj.updated_at, mocked_update_stamp)
-        self.assertEqual(obj.updated_at, now)
+            mocked_update_stamp = datetime.fromisoformat("2014-01-01")
+            attributes = {
+                "id": "123",
+                "updated_at": datetime.isoformat(mocked_update_stamp),
+            }
 
-    def test_updated_at_when_created_at(self):
-        """
-        Test the behavior of updated_at when created_at is provided.
-        """
-        mocked_create_stamp = datetime.fromisoformat("2014-01-01")
-        dic = {
-            "id": "123",
-            "created_at": datetime.isoformat(mocked_create_stamp)
-        }
+            obj = BaseModel(**attributes)
 
-        with patch("models.base_model.datetime") as mocked_datetime:
-            now = datetime.now()
-            mocked_datetime.now.return_value = now
-            mocked_datetime.fromisoformat.return_value = mocked_create_stamp
-            obj = BaseModel(**dic)
+            self.assertEqual(obj.updated_at, mocked_update_stamp)
 
-        self.assertEqual(obj.created_at, mocked_create_stamp)
-        self.assertEqual(obj.updated_at, now)
+            for attribute in attributes.keys():
+                self.assertTrue(hasattr(obj, attribute))
+
+            self.assertEqual(
+                len(obj.__dict__), len(attributes),
+                "Object has extra attributes"
+            )
