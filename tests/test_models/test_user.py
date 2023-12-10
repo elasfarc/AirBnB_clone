@@ -82,7 +82,9 @@ class TestUser(unittest.TestCase):
         """
         user = User()
         old_updated_at = user.updated_at
-        user.save()
+        with patch("models.storage.save", side_effect=lambda: None):
+            user.save()
+
         sleep(0.01)
         new_updated_at = user.updated_at
         self.assertNotEqual(old_updated_at, new_updated_at)
