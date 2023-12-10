@@ -1,16 +1,21 @@
+#!/usr/bin/python3
+"""module containing tests for the User class."""
+
 import unittest
+from unittest.mock import patch
 from time import sleep
+from datetime import datetime
 
 from models.user import User
 from models.base_model import BaseModel
-from unittest.mock import patch
-from datetime import datetime
 
 
 class TestUser(unittest.TestCase):
+    """Class for testing User class."""
     @patch("uuid.uuid4", return_value="1234")
     @patch("models.storage.new")
     def test_new_instance(self, storage_new, mock_uuid4):
+        """Test the creation of a new instance of the User class"""
         mocked_now = datetime.fromisoformat("2024-01-01")
 
         with patch("models.base_model.datetime") as mock_datetime:
@@ -43,9 +48,11 @@ class TestUser(unittest.TestCase):
         storage_new.assert_not_called()
 
     def test_id_uniqueness(self):
+        """Test the uniqueness of User IDs."""
         self.assertNotEqual(User().id, User().id)
 
     def test_created_at(self):
+        """Test the creation timestamps of User instances."""
         u1 = User()
         sleep(0.1)
         u2 = User()
@@ -53,6 +60,7 @@ class TestUser(unittest.TestCase):
         self.assertLess(u1.created_at, u2.created_at)
 
     def test__str__(self):
+        """Test the string representation of User instances."""
 
         mocked_now = datetime.fromisoformat("2024-01-01")
         with patch("models.base_model.datetime") as mock_datetime:
@@ -68,6 +76,10 @@ class TestUser(unittest.TestCase):
         self.assertIn("'updated_at': " + repr(mocked_now), str(user))
 
     def test_updated_at_on_save(self):
+        """
+        Test that the 'updated_at' attribute is updated on calling the
+        'save' method.
+        """
         user = User()
         old_updated_at = user.updated_at
         user.save()
@@ -77,6 +89,7 @@ class TestUser(unittest.TestCase):
         self.assertLess(old_updated_at, new_updated_at)
 
     def test_to_dict_keys(self):
+        """Test the keys returned by the 'to_dict' method."""
         user = User()
         self.assertIn("id", user.to_dict())
         self.assertIn("created_at", user.to_dict())
