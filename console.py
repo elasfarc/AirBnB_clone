@@ -4,6 +4,7 @@
 import cmd
 from textwrap import dedent
 from models.base_model import BaseModel
+from models.user import User
 from models.virtual import StorableEntity
 from models import storage
 from typing import Dict, Type, List, Callable
@@ -25,8 +26,10 @@ def format_docstring(fn):
 class HBNBCommand(cmd.Cmd):
     """HBNB console commands and helper functions"""
 
+    # TODO single supporeted __classes (console, fileStorage)
     __classes: Dict[str, Type[StorableEntity]] = {
-        'BaseModel': BaseModel
+        'BaseModel': BaseModel,
+        'User': User
     }
 
     prompt = "(hbnb) "

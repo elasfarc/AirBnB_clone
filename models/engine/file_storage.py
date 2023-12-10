@@ -7,6 +7,7 @@ import json
 from os import path
 from typing import Dict, Any, Type
 from models.base_model import BaseModel
+from models.user import User
 from models.virtual import StorableEntity
 
 
@@ -23,6 +24,7 @@ class FileStorage:
     __objects: Dict[str, StorableEntity] = {}
     __classes: Dict[str, Type[StorableEntity]] = {
         BaseModel.__name__: BaseModel,
+        User.__name__: User
     }
 
     def all(self):
@@ -44,7 +46,7 @@ class FileStorage:
         Raises:
             TypeError: If the object lacks required attributes.
         """
-
+        # TODO check __class__ in __classes
         if not all([hasattr(obj, attr) for attr in ["id", "__class__"]]
                    ) or not hasattr(obj.__class__, "__name__"):
             raise TypeError(f"obj must have attributes named id, __class__")
