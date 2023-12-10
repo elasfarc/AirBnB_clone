@@ -5,10 +5,8 @@ module containing the class FileStorage
 
 import json
 from os import path
-from typing import Dict, Any, Type
-from models.base_model import BaseModel
-from models.user import User
-from models.virtual import StorableEntity
+from models.__supported_class import supported_classes, StorableEntity
+from typing import Dict, Any
 
 
 SavedObjects = Dict[str, StorableEntity]
@@ -22,10 +20,6 @@ class FileStorage:
     """
     __file_path = "db.json"
     __objects: Dict[str, StorableEntity] = {}
-    __classes: Dict[str, Type[StorableEntity]] = {
-        BaseModel.__name__: BaseModel,
-        User.__name__: User
-    }
 
     def all(self):
         """
@@ -80,8 +74,9 @@ class FileStorage:
             return {}
         return json.loads(json_str)
 
+    @staticmethod
     def __instantiate_from_dict(
-            self, cls_name: str, dic: Dict[str, Any]
+           cls_name: str, dic: Dict[str, Any]
     ) -> StorableEntity:
         """
         Instantiates a StorableEntity object from a dictionary.
@@ -94,7 +89,7 @@ class FileStorage:
             StorableEntity: An instance that adheres to
             StorableEntity virtual class.
         """
-        cls = self.__classes[cls_name]
+        cls = supported_classes[cls_name]
         # cls = globals()[cls_name]
         return cls(**dic)
 
