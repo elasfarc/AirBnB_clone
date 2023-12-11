@@ -306,7 +306,7 @@ class HBNBCommand(cmd.Cmd):
             elif target == "cls":
                 return special_cmd[:match.end() - 1]
 
-    def _get_all(self, s: str) -> Union[Dict, None]:
+    def _get_all(self, s: str):
         """
         Get all objects of a certain class or all objects
         if no class is provided.
@@ -344,7 +344,8 @@ class HBNBCommand(cmd.Cmd):
             None
         """
         dic = self._get_all(s)
-        print(len(dic))
+        if (dic):
+            print(len(dic))
         return ""
 
 
