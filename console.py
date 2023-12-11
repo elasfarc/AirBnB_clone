@@ -6,10 +6,9 @@ import shlex
 from textwrap import dedent
 import re
 
-
 from models import storage
 from models.__supported_class import supported_classes, StorableEntity
-from typing import Dict, List, Callable, Literal, Pattern
+from typing import Dict, List, Callable, Literal, Pattern, Union
 
 
 def format_docstring(fn):
@@ -60,6 +59,7 @@ class HBNBCommand(cmd.Cmd):
         destroy command - Deletes an instance based on the class name and id
         Ex: $ destroy [className] [object_id].
         """
+
         def remove_object_and_save(storage_key: str):
             """
             Removes an object with the specified key from storage and
@@ -80,19 +80,8 @@ class HBNBCommand(cmd.Cmd):
         all command - all: Prints all string representation of all instances
         based or not on the class name. Ex: $ all BaseModel or $ all.
         """
-
-        args = shlex.split(s)
-        is_class = bool(len(args))
-
-        if is_class:
-            if self.has_valid_class(args):
-                class_name = args[0]
-                dic = self.__filter_by_prefix(storage.all(), class_name)
-            else:
-                return
-        else:
-            dic = storage.all()
-        print([str(entity) for entity in dic.values()])
+        if dic := self._get_all(s):
+            print([str(entity) for entity in dic.values()])
 
     @format_docstring
     def do_update(self, s: str):
@@ -231,7 +220,7 @@ class HBNBCommand(cmd.Cmd):
         return True
 
     def operate_on_entity_if_valid(
-        self, cmd_line: str, operation_fn: Callable[[str], None]
+            self, cmd_line: str, operation_fn: Callable[[str], None]
     ):
         """
         Executes an operation on a stored entity if the command line is valid.
@@ -260,13 +249,14 @@ class HBNBCommand(cmd.Cmd):
         """
         special_line = line.split(maxsplit=0)[0] if len(line) else ""
         special_cmds_pattern = \
-            re.compile(r"([a-zA-Z0-9])*\.(all|show|destroy|update)\(.*?\)$")
+            re.compile(r"([a-zA-Z0-9])*\.(all|show|destroy|update|count)\(.*?\)$")
         match = special_cmds_pattern.fullmatch(special_line)
         if match:
             return self._parse_special_command(special_line)
 
         else:
             return cmd.Cmd.precmd(self, line)
+        5
 
     def _parse_special_command(self, line: str):
         """
@@ -287,7 +277,8 @@ class HBNBCommand(cmd.Cmd):
         args = self.__parse_part(line, args_pattern, "args")
         formatted_args = " ".join(args.split(", "))
 
-        return f"{command} {cls} {formatted_args}"
+        parsed = f"{command} {cls} {formatted_args}"
+        return parsed if command != "count" else self._do_count(cls)
 
     @staticmethod
     def __parse_part(
@@ -312,6 +303,26 @@ class HBNBCommand(cmd.Cmd):
                 return special_cmd[match.start() + 1: match.end() - 1]
             elif target == "cls":
                 return special_cmd[:match.end() - 1]
+
+    def _get_all(self, s: str) -> Union[Dict, None]:
+        args = shlex.split(s)
+        is_class = bool(len(args))
+
+        if is_class:
+            if self.has_valid_class(args):
+                class_name = args[0]
+                dic = self.__filter_by_prefix(storage.all(), class_name)
+            else:
+                return None
+        else:
+            dic = storage.all()
+
+        return dic
+
+    def _do_count(self, s):
+        dic = self._get_all(s)
+        print(len(dic))
+        return ""
 
 
 if __name__ == "__main__":
