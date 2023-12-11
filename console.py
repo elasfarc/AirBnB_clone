@@ -4,11 +4,12 @@
 import cmd
 import shlex
 from textwrap import dedent
+import re
 
 
 from models import storage
 from models.__supported_class import supported_classes, StorableEntity
-from typing import Dict, List, Callable
+from typing import Dict, List, Callable, Literal, Pattern
 
 
 def format_docstring(fn):
@@ -247,6 +248,70 @@ class HBNBCommand(cmd.Cmd):
             entity_key = self.get_entity_storing_key(args[0], args[1])
             if self.is_stored(key=entity_key):
                 operation_fn(entity_key)
+
+    def precmd(self, line):
+        """
+        Preprocess the command line before executing it.
+
+        Args:
+            line(str): The command line to process.
+
+        Returns: The processed command line.
+        """
+        special_line = line.split(maxsplit=0)[0] if len(line) else ""
+        special_cmds_pattern = \
+            re.compile(r"([a-zA-Z0-9])*\.(all|show|destroy|update)\(.*?\)$")
+        match = special_cmds_pattern.fullmatch(special_line)
+        if match:
+            return self._parse_special_command(special_line)
+
+        else:
+            return cmd.Cmd.precmd(self, line)
+
+    def _parse_special_command(self, line: str):
+        """
+            Parses a special command and returns the appropriate response.
+
+            Args:
+                line(str): The special command to parse.
+
+            Returns: The response to the special command. (str)
+            """
+
+        cls_pattern = re.compile(r"^[a-zA-Z0-9]*\.")
+        cmd_pattern = re.compile(r'.[a-zA-Z]*\(')
+        args_pattern = re.compile(r'\(.*?\)$')
+
+        cls = self.__parse_part(line, cls_pattern, "cls")
+        command = self.__parse_part(line, cmd_pattern, "cmd")
+        args = self.__parse_part(line, args_pattern, "args")
+        formatted_args = " ".join(args.split(", "))
+
+        return f"{command} {cls} {formatted_args}"
+
+    @staticmethod
+    def __parse_part(
+            special_cmd, ptrn: Pattern, target: Literal["cmd", "cls", "args"]
+    ):
+        """
+        Helper function to parse a part of a special command.
+
+        Args:
+            special_cmd : str
+                The special command to parse.
+            ptrn : Pattern
+                The pattern to search for in the special command.
+            target : Literal["cmd", "cls", "args"]
+                The part of the special command to retrieve.
+
+        Returns: The requested part of the special command. (str)
+        """
+        match = ptrn.search(special_cmd)
+        if match:
+            if target == "cmd" or target == "args":
+                return special_cmd[match.start() + 1: match.end() - 1]
+            elif target == "cls":
+                return special_cmd[:match.end() - 1]
 
 
 if __name__ == "__main__":
