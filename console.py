@@ -249,7 +249,9 @@ class HBNBCommand(cmd.Cmd):
         """
         special_line = line.split(maxsplit=0)[0] if len(line) else ""
         special_cmds_pattern = \
-            re.compile(r"([a-zA-Z0-9])*\.(all|show|destroy|update|count)\(.*?\)$")
+            re.compile(
+                r"([a-zA-Z0-9])*\.(all|show|destroy|update|count)\(.*?\)$"
+            )
         match = special_cmds_pattern.fullmatch(special_line)
         if match:
             return self._parse_special_command(special_line)
@@ -305,6 +307,17 @@ class HBNBCommand(cmd.Cmd):
                 return special_cmd[:match.end() - 1]
 
     def _get_all(self, s: str) -> Union[Dict, None]:
+        """
+        Get all objects of a certain class or all objects
+        if no class is provided.
+
+        Args:
+            s (str): The command string.
+
+        Returns:
+            Dict: A dictionary mapping object IDs to objects.
+            None: If there is no valid class provided.
+        """
         args = shlex.split(s)
         is_class = bool(len(args))
 
@@ -320,6 +333,16 @@ class HBNBCommand(cmd.Cmd):
         return dic
 
     def _do_count(self, s):
+        """
+        Print the Count the number of objects of a certain class or
+        all objects if no class is provided.
+
+        Args:
+            s (str): The command string.
+
+        Returns:
+            None
+        """
         dic = self._get_all(s)
         print(len(dic))
         return ""
