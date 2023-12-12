@@ -249,7 +249,7 @@ class HBNBCommand(cmd.Cmd):
 
         Returns: The processed command line.
         """
-        special_line = line.split(maxsplit=0)[0] if len(line) else ""
+        special_line = line.split(maxsplit=0)[0] if len(line.strip()) else ""
         special_cmds_pattern = \
             re.compile(
                 r"([a-zA-Z0-9])*\.(all|show|destroy|update|count)\(.*?\)$"
