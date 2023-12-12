@@ -5,10 +5,11 @@ import cmd
 import shlex
 from textwrap import dedent
 import re
+import ast
 
 from models import storage
 from models.__supported_class import supported_classes, StorableEntity
-from typing import Dict, List, Callable, Literal, Pattern, Union
+from typing import Dict, List, Callable, Literal, Pattern, Any
 
 
 def format_docstring(fn):
@@ -108,6 +109,7 @@ class HBNBCommand(cmd.Cmd):
             else:
                 attr_name = args[2]
                 value = str(args[3])
+                # TODO correctly cast value
                 obj = storage.all()[storage_key]
                 obj[attr_name] = value
                 storage.save()
@@ -258,7 +260,6 @@ class HBNBCommand(cmd.Cmd):
 
         else:
             return cmd.Cmd.precmd(self, line)
-        5
 
     def _parse_special_command(self, line: str):
         """
@@ -268,7 +269,7 @@ class HBNBCommand(cmd.Cmd):
                 line(str): The special command to parse.
 
             Returns: The response to the special command. (str)
-            """
+        """
 
         cls_pattern = re.compile(r"^[a-zA-Z0-9]*\.")
         cmd_pattern = re.compile(r'.[a-zA-Z]*\(')
@@ -280,11 +281,31 @@ class HBNBCommand(cmd.Cmd):
         formatted_args = " ".join(args.split(", "))
 
         parsed = f"{command} {cls} {formatted_args}"
-        return parsed if command != "count" else self._do_count(cls)
+
+        ##
+        multi_updates_ptrn = re.compile(r'(?<=,)\s*\{.*?\}')
+        if command == "update" and (match := multi_updates_ptrn.search(args)):
+            raw_dict = match.group().strip()
+            try:
+                parsed_dict: Dict[str, Any] = ast.literal_eval(raw_dict)
+                for k, v in parsed_dict.items():
+                    object_id = args.split(',')[0]
+                    self.do_update(f"{cls} {object_id} {k} {v}")
+            except Exception:
+                print("** Error: The multiple update command"
+                      "is not used correctly. ** \n"
+                      "<class name>.update(<id>, <dictionary representation>)"
+                      )
+        elif command == "count":
+            self._do_count(cls)
+        else:
+            return parsed
+
+        return ""
 
     @staticmethod
     def __parse_part(
-            special_cmd, ptrn: Pattern, target: Literal["cmd", "cls", "args"]
+        special_cmd: str, ptrn: Pattern, target: Literal["cmd", "cls", "args"]
     ):
         """
         Helper function to parse a part of a special command.
@@ -302,11 +323,15 @@ class HBNBCommand(cmd.Cmd):
         match = ptrn.search(special_cmd)
         if match:
             if target == "cmd" or target == "args":
+                # substring_inside_match
                 return special_cmd[match.start() + 1: match.end() - 1]
             elif target == "cls":
+                # substring_before_match_end
                 return special_cmd[:match.end() - 1]
 
-    def _get_all(self, s: str) -> Union[Dict, None]:
+        return ''
+
+    def _get_all(self, s: str):
         """
         Get all objects of a certain class or all objects
         if no class is provided.
@@ -344,8 +369,8 @@ class HBNBCommand(cmd.Cmd):
             None
         """
         dic = self._get_all(s)
-        print(len(dic))
-        return ""
+        if dic:
+            print(len(dic))
 
 
 if __name__ == "__main__":
