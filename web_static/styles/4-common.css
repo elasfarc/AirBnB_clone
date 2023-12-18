@@ -15,6 +15,6 @@ body
 .container
 {
     max-width: 1000px;
-    margin: 30px auto 0;
+    margin: 30px auto 10rem;
     /*margin-top: 30px;*/
 }
