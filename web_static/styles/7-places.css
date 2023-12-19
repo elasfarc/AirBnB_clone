@@ -1,0 +1,38 @@
+.places
+{
+    max-width: inherit;
+    margin-top: 2rem;
+}
+
+.places h1,
+.place h2
+{
+    font-size: 30px;
+}
+
+.places h1
+{
+    margin-left: 2em;
+}
+
+.place-cards
+{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+
+.place
+{
+    width: 390px;
+    padding: 20px;
+    margin: 20px;
+    border: 1px solid #FF5A5F;
+    border-radius: 4px;
+}
+
+.place h2
+{
+    text-align: center;
+}
