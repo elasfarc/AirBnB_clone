@@ -1,0 +1,147 @@
+.filters
+{
+    height: 70px;
+    width: 100%;
+    border: 1px solid #DDDDDD;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.filters .locations, .filters .amenities
+{
+    height: 100%;
+    width: 25%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-content: center;
+    flex-wrap: wrap;
+    position: relative;
+}
+
+.locations
+{
+    border-right: 1px solid #DDDDDD;
+}
+
+.locations h3, .amenities h3
+{
+    font-weight: 600;
+}
+
+.locations h4, .amenities h4
+{
+    font-weight: 400;
+    font-size: 14px;
+}
+
+.popover
+{
+    display: none;
+}
+
+.locations:hover .popover,
+.amenities:hover .popover
+{
+    display: block;
+    width: calc(100% + 2px);
+    position: absolute;
+    top: 4.25rem;
+    left: -1px;
+    background-color: #FAFAFA;
+    border: 1px solid #DDDDDD;
+    border-radius: 4px;
+    padding: 10px 0;
+}
+
+.popover > li
+{
+    padding: 3px 20px;
+}
+
+.location-popover > li
+{
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+
+.popover li
+{
+    list-style: none;
+}
+
+.popover h2
+{
+    font-size: 16px;
+}
+
+.popover h2 + ul
+{
+    margin-left: 20px;
+}
+
+.popover h2 + ul > *
+{
+    padding-top: 2px;
+}
+.city-list > *
+{
+    padding-top: 2px;
+}
+
+
+.filters button
+{
+    height: 48px;
+    width: 20%;
+    margin-right: 30px;
+    margin-left: auto;
+    font-size: 18px;
+    background-color: #FF5A5f;
+    color: #FFFFFF;
+    border: 0 solid transparent;
+    border-radius: 4px;
+}
+
+.filters button:hover
+{
+    opacity: 90%;
+}
+
+
+@media(min-width: 550px) {
+    .sm-screen-filters{
+        display: none;
+    }
+}
+
+@media (max-width: 550px) {
+    .normal-filters {
+        display: none;
+    }
+
+    .sm-screen-filters .filters {
+        justify-content: space-around;
+    }
+
+    .sm-screen-filters button {
+        display: block;
+        margin: 15px auto 0px;
+        height: 40px;
+        width: 35%;
+        font-size: 18px;
+        background-color: #FF5A5f;
+        color: #FFFFFF;
+        border: 0 solid transparent;
+        border-radius: 4px;
+    }
+
+    .sm-screen-filters .locations:hover .popover,
+    .sm-screen-filters .amenities:hover .popover {
+        width: 150%;
+        left: -10%
+
+    }
+}
